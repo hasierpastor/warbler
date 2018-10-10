@@ -55,9 +55,9 @@
               <a href="/users/{{ msg.user.id }}">@{{ msg.user.username }}</a>
               <span class="text-muted">{{ msg.timestamp.strftime('%d %B %Y') }}
                 {% if msg.id in g.likes_id %}
-                <form><input type="hidden" name="message_id" value="{{msg.id}}"><a><button formaction="/unlike" formmethod="POST" class="fas fa-star"></button></a></form></span>
+                <form><input type="hidden" name="message_id" value="{{msg.id}}"><a><button formaction="/like/remove" formmethod="POST" class="fas fa-star"></button></a></form></span>
                 {% else %}
-                <form><input type="hidden" name="message_id" value="{{msg.id}}"><a><button formaction="/like" formmethod="POST" class="far fa-star"></button></a></form></span>
+                <form><input type="hidden" name="message_id" value="{{msg.id}}"><a><button formaction="/like/add" formmethod="POST" class="far fa-star"></button></a></form></span>
                 {% endif %}
               <p>{{ msg.text }}</p>
               

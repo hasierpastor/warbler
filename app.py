@@ -347,25 +347,18 @@ def homepage():
         return render_template('home-anon.html')
 
 
-@app.route('/like', methods=["POST"])
-def add_like():
-    """Add liked message to likes table in database"""
+@app.route('/like/<action>', methods=["POST"])
+def handle_like(action):
+    """Handle liked message"""
     message_id = request.form.get('message_id')
     user_id = g.user.id
-    like = Like(message_id=message_id, user_id=user_id)
-    db.session.add(like)
-    db.session.commit()
-    return redirect('/')
-
-
-@app.route('/unlike', methods=["POST"])
-def remove_like():
-    """Remove liked message from likes table in database"""
-    message_id = request.form.get('message_id')
-    user_id = g.user.id
-    like = Like.query.filter(
-        and_(Like.user_id == user_id, Like.message_id == message_id)).first()
-    db.session.delete(like)
+    if action == 'add':
+        like = Like(message_id=message_id, user_id=user_id)
+        db.session.add(like)
+    else:
+        like = Like.query.filter(
+            and_(Like.user_id == user_id, Like.message_id == message_id)).first()
+        db.session.delete(like)
     db.session.commit()
     return redirect('/')
 
