@@ -14,12 +14,14 @@ class FollowersFollowee(db.Model):
 
     __tablename__ = 'follows'
 
+    # Has "follow" clicked on them
     followee_id = db.Column(
         db.Integer,
         db.ForeignKey('users.id', ondelete="cascade"),
         primary_key=True,
     )
 
+    # Clicks on 'follow'
     follower_id = db.Column(
         db.Integer,
         db.ForeignKey('users.id', ondelete="cascade"),
@@ -76,6 +78,8 @@ class User(db.Model):
     messages = db.relationship('Message', backref='user', lazy='dynamic')
 
     # DIFFERENCE BTW PRIMARY/SECONDARY JOINS?
+    # Many-to-many between followers and followees
+    # Both are coming from users table
     followers = db.relationship(
         "User",
         secondary="follows",

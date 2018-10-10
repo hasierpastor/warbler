@@ -3,8 +3,9 @@ import os
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
+from werkzeug.exceptions import Unauthorized
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
 from models import db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
@@ -50,7 +51,10 @@ def do_logout():
     """Logout user."""
 
     if CURR_USER_KEY in session:
-        del session[CURR_USER_KEY]
+        # del session[CURR_USER_KEY]
+        session.pop(CURR_USER_KEY)
+        flash('Logged out! :(')
+        return redirect('/login')
 
 
 @app.route('/signup', methods=["GET", "POST"])
@@ -109,15 +113,17 @@ def login():
     return render_template('users/login.html', form=form)
 
 
+# WHY SEPARATE TO TWO FUNCTIONS?
 @app.route('/logout')
 def logout():
     """Handle logout of user."""
-
     # IMPLEMENT THIS
 
+    return do_logout()
 
 ##############################################################################
 # General user routes:
+
 
 @app.route('/users')
 def list_users():
@@ -203,6 +209,30 @@ def profile():
     """Update profile for current user."""
 
     # IMPLEMENT THIS
+    if CURR_USER_KEY in session:
+        user = User.query.get_or_404(session[CURR_USER_KEY])
+        username_original = user.username
+        form = UserEditForm(obj=user)
+
+        if form.validate_on_submit():
+
+            password = form.data['password']
+
+            if User.authenticate(username_original, password):
+                user.username = form.data['username']
+                user.email = form.data['email']
+                user.image_url = form.data['image_url']
+                user.header_image_url = form.data['header_image_url']
+                user.bio = form.data['bio']
+                db.session.commit()
+                return redirect(f'/users/{user.id}')
+            else:
+                flash('Username or password invalid! :(')
+                return redirect('/')
+        else:
+            return render_template('users/edit.html', form=form)
+    else:
+        raise Unauthorized()
 
 
 @app.route('/users/delete', methods=["POST"])
@@ -285,8 +315,10 @@ def homepage():
     if g.user:
         following_ids = [f.id for f in g.user.following] + [g.user.id]
 
+        # FILTER(TABLENAME.COLUMNNAME.IN_(ARRAY))
         messages = (Message
                     .query
+                    .filter(Message.user_id.in_(following_ids))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
