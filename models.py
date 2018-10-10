@@ -74,6 +74,8 @@ class User(db.Model):
         nullable=False,
     )
 
+    likes = db.relationship('Like', backref='user', lazy='dynamic')
+
     # WHAT DOES LAZY MEAN???
     messages = db.relationship('Message', backref='user', lazy='dynamic')
 
@@ -166,6 +168,26 @@ class Message(db.Model):
         db.Integer,
         db.ForeignKey('users.id', ondelete='CASCADE'),
         nullable=False,
+    )
+
+    likes = db.relationship('Like', backref='messages', lazy='dynamic')
+
+
+class Like(db.Model):
+    """A like on a message"""
+
+    __tablename__ = 'likes'
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id', ondelete='CASCADE'),
+        primary_key=True
+    )
+
+    message_id = db.Column(
+        db.Integer,
+        db.ForeignKey('messages.id', ondelete='CASCADE'),
+        primary_key=True
     )
 
 

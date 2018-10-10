@@ -4,9 +4,10 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import Unauthorized
+from sqlalchemy import and_
 
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Like
 
 CURR_USER_KEY = "curr_user"
 
@@ -36,6 +37,8 @@ def add_user_to_g():
 
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
+        g.likes = Like.query.filter(Like.user_id == g.user.id).all()
+        g.likes_id = [like.message_id for like in g.likes]
 
     else:
         g.user = None
@@ -147,7 +150,8 @@ def users_show(user_id):
     """Show user profile."""
 
     user = User.query.get_or_404(user_id)
-    return render_template('users/show.html', user=user)
+    count = Like.query.filter(Like.user_id == user.id).count()
+    return render_template('users/show.html', user=user, count=count)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -171,7 +175,21 @@ def users_followers(user_id):
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
+
     return render_template('users/followers.html', user=user)
+
+
+@app.route('/users/<int:user_id>/likes')
+def users_likes(user_id):
+    """Show list of likes of this user."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+    messages = Message.query.filter(Message.id.in_(g.likes_id)).all()
+    return render_template('users/likes.html', user=user, messages=messages)
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
@@ -327,6 +345,29 @@ def homepage():
 
     else:
         return render_template('home-anon.html')
+
+
+@app.route('/like', methods=["POST"])
+def add_like():
+    """Add liked message to likes table in database"""
+    message_id = request.form.get('message_id')
+    user_id = g.user.id
+    like = Like(message_id=message_id, user_id=user_id)
+    db.session.add(like)
+    db.session.commit()
+    return redirect('/')
+
+
+@app.route('/unlike', methods=["POST"])
+def remove_like():
+    """Remove liked message from likes table in database"""
+    message_id = request.form.get('message_id')
+    user_id = g.user.id
+    like = Like.query.filter(
+        and_(Like.user_id == user_id, Like.message_id == message_id)).first()
+    db.session.delete(like)
+    db.session.commit()
+    return redirect('/')
 
 
 @app.errorhandler(404)
