@@ -2,13 +2,13 @@
 
 # run these tests like:
 #
-#    python -m unittest test_user_model.py
+# python -m unittest test_user_model.py
 
 
 import os
 from unittest import TestCase
 
-from models import db, User, Message, FollowersFollowee
+from models import db, User, Message, FollowersFollowee, Like
 from datetime import datetime
 
 # BEFORE we import our app, let's set an environmental variable
@@ -39,7 +39,8 @@ class UserModelTestCase(TestCase):
         User.query.delete()
         Message.query.delete()
         FollowersFollowee.query.delete()
-        # db.session.commit()
+        Like.query.delete()
+        db.session.commit()
 
         self.client = app.test_client()
 
@@ -110,7 +111,29 @@ class UserModelTestCase(TestCase):
 
 
 class UserMessageRelationshipTestCase(TestCase):
+    # Set up and tear down have to be added for every class you create
     """Test relationship between User and Message models."""
+
+    def setUp(self):
+        """Create test client, add sample data."""
+
+        User.query.delete()
+        Message.query.delete()
+        FollowersFollowee.query.delete()
+        Like.query.delete()
+        db.session.commit()
+
+        self.client = app.test_client()
+
+    def tearDown(self):
+        """Delete all instances of users from test database"""
+
+        User.query.delete()
+        Message.query.delete()
+        FollowersFollowee.query.delete()
+        db.session.commit()
+
+        self.client = app.test_client()
 
     def test_message_relationship(self):
         """Does message relationship to user work?"""
@@ -126,7 +149,7 @@ class UserMessageRelationshipTestCase(TestCase):
         m = Message(
             id=1,
             text='Test message',
-            user_id=1
+            user_id=u.id
         )
 
         # ADD 2 ITEMS AT ONCE
@@ -138,9 +161,34 @@ class UserMessageRelationshipTestCase(TestCase):
         self.assertEqual(u.messages[0].text, 'Test message')
         self.assertEqual(u.id, m.user_id)
 
+        # Testing relationship between messages and users - SHOULD IT BE IN MESSAGE TESTS??
+
+        self.assertEqual(m.user.username, 'testuser')
+
 
 class UserFollowersFolloweeRelationshipTestCase(TestCase):
     """Test relationship between User and FollowersFollowee models."""
+
+    def setUp(self):
+        """Create test client, add sample data."""
+
+        User.query.delete()
+        Message.query.delete()
+        FollowersFollowee.query.delete()
+        Like.query.delete()
+        db.session.commit()
+
+        self.client = app.test_client()
+
+    def tearDown(self):
+        """Delete all instances of users from test database"""
+
+        User.query.delete()
+        Message.query.delete()
+        FollowersFollowee.query.delete()
+        db.session.commit()
+
+        self.client = app.test_client()
 
     def test_follow_relationship(self):
         """Does follow relationship to user work?
@@ -194,3 +242,56 @@ class UserFollowersFolloweeRelationshipTestCase(TestCase):
         self.assertEqual(u2.is_followed_by(u1), False)
         self.assertEqual(u3.is_following(u2), True)
         self.assertEqual(u2.is_following(u3), False)
+
+
+class UserLikeRelationshipTestCase(TestCase):
+    """Test relationship between User and Like models."""
+
+    def setUp(self):
+        """Create test client, add sample data."""
+
+        User.query.delete()
+        Message.query.delete()
+        FollowersFollowee.query.delete()
+        Like.query.delete()
+        db.session.commit()
+
+        self.client = app.test_client()
+
+    def tearDown(self):
+        """Delete all instances of users from test database"""
+
+        User.query.delete()
+        Message.query.delete()
+        FollowersFollowee.query.delete()
+        db.session.commit()
+
+        self.client = app.test_client()
+
+    def test_user_like_relationship(self):
+
+        u = User.signup(
+            email="test@test.com",
+            username="testuser",
+            password="testpassword",
+            image_url=None
+        )
+
+        u.id = 1
+
+        m = Message(
+            id=1,
+            text="Test Message",
+            timestamp=None,
+            user_id=u.id
+        )
+
+        l = Like(
+            user_id=u.id,
+            message_id=m.id
+        )
+
+        db.session.add_all([m, l])
+        db.session.commit()
+
+        self.assertEqual(u.likes[0].user_id, u.id)
