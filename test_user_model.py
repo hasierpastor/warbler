@@ -70,7 +70,7 @@ class UserModelTestCase(TestCase):
         self.assertEqual(u.messages.count(), 0)
         self.assertEqual(u.followers.count(), 0)
         self.assertEqual(u.email, 'test@test.com')
-        self.assertEqual(u.__repr__(), '<User #1: testuser, test@test.com')
+        self.assertEqual(u.__repr__(), '<User #1: testuser, test@test.com>')
 
     def test_signup(self):
         """Does signup process work?  Hashed password?"""
@@ -168,18 +168,16 @@ class UserFollowersFolloweeRelationshipTestCase(TestCase):
             image_url=None
         )
 
-        u1.id = 1
-        u2.id = 2
-        u3.id = 3
+        db.session.commit()
 
         f1 = FollowersFollowee(
-            followee_id=1,
-            follower_id=2
+            followee_id=u1.id,
+            follower_id=u2.id
         )
 
         f2 = FollowersFollowee(
-            followee_id=2,
-            follower_id=3
+            followee_id=u2.id,
+            follower_id=u3.id
         )
 
         db.session.add_all([f1, f2])
@@ -188,10 +186,10 @@ class UserFollowersFolloweeRelationshipTestCase(TestCase):
         # USERS GO THROUGH FOLLOWS TABLE AND BACK TO USER TABLE
         # FOLLOWING = u1 is FOLLOWED by u2
         # FOLLOWERS = u3 is FOLLOWING u2
-        self.assertEqual(u1.following[0].id, u2.id)
-        self.assertEqual(u3.followers[0].id, u2.id)
+        self.assertEqual(u1.followers[0].id, u2.id)
+        self.assertEqual(u3.following[0].id, u2.id)
 
-        # Test is_followed_by, is_following methods
+        # # Test is_followed_by, is_following methods
         self.assertEqual(u1.is_followed_by(u2), True)
         self.assertEqual(u2.is_followed_by(u1), False)
         self.assertEqual(u3.is_following(u2), True)

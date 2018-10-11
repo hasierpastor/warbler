@@ -85,11 +85,12 @@ class User(db.Model):
     # DIFFERENCE BTW PRIMARY/SECONDARY JOINS?
     # Many-to-many between followers and followees
     # Both are coming from users table
+    # FOLLOWEE AND FOLLOWER SWITCHED; ORIGINALLY FLIPPED
     followers = db.relationship(
         "User",
         secondary="follows",
-        primaryjoin=(FollowersFollowee.follower_id == id),
-        secondaryjoin=(FollowersFollowee.followee_id == id),
+        primaryjoin=(FollowersFollowee.followee_id == id),
+        secondaryjoin=(FollowersFollowee.follower_id == id),
         backref=db.backref('following', lazy='dynamic'),
         lazy='dynamic')
 
