@@ -79,6 +79,9 @@ class User(db.Model):
     # WHAT DOES LAZY MEAN???
     messages = db.relationship('Message', backref='user', lazy='dynamic')
 
+    liked_messages = db.relationship(
+        'Message', secondary='likes', backref='liking_users')
+
     # DIFFERENCE BTW PRIMARY/SECONDARY JOINS?
     # Many-to-many between followers and followees
     # Both are coming from users table

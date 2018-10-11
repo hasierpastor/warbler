@@ -9,13 +9,14 @@ import os
 from unittest import TestCase
 
 from models import db, User, Message, FollowersFollowee
+from datetime import datetime
 
 # BEFORE we import our app, let's set an environmental variable
 # to use a different database for tests (we need to do this
 # before we import our app, since that will have already
 # connected to the database
 
-os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
+os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
 
 
 # Now we can import app
@@ -30,7 +31,7 @@ db.create_all()
 
 
 class UserModelTestCase(TestCase):
-    """Test views for messages."""
+    """Test model for User."""
 
     def setUp(self):
         """Create test client, add sample data."""
@@ -38,6 +39,17 @@ class UserModelTestCase(TestCase):
         User.query.delete()
         Message.query.delete()
         FollowersFollowee.query.delete()
+        # db.session.commit()
+
+        self.client = app.test_client()
+
+    def tearDown(self):
+        """Delete all instances of users from test database"""
+
+        User.query.delete()
+        Message.query.delete()
+        FollowersFollowee.query.delete()
+        db.session.commit()
 
         self.client = app.test_client()
 
@@ -45,6 +57,7 @@ class UserModelTestCase(TestCase):
         """Does basic model work?"""
 
         u = User(
+            id=1,
             email="test@test.com",
             username="testuser",
             password="HASHED_PASSWORD"
@@ -56,3 +69,130 @@ class UserModelTestCase(TestCase):
         # User should have no messages & no followers
         self.assertEqual(u.messages.count(), 0)
         self.assertEqual(u.followers.count(), 0)
+        self.assertEqual(u.email, 'test@test.com')
+        self.assertEqual(u.__repr__(), '<User #1: testuser, test@test.com')
+
+    def test_signup(self):
+        """Does signup process work?  Hashed password?"""
+        u = User.signup(
+            email="test@test.com",
+            username="testuser",
+            password="testpassword",
+            image_url=None
+        )
+
+        db.session.add(u)
+        db.session.commit()
+
+        # Username should be expected; password should be a hash
+        self.assertEqual(u.username, 'testuser')
+        self.assertIn('$2b$12$', u.password)
+
+    def test_authenticate(self):
+        """Does authentication process work?  Does passed in password match database password?"""
+        u = User.signup(
+            email="test@test.com",
+            username="testuser",
+            password="testpassword",
+            image_url=None
+        )
+
+        # db.session.add(u)
+        db.session.commit()
+
+        authenticated_user = User.authenticate(u.username, 'testpassword')
+        unauthenticated_user = User.authenticate(u.username, 'random')
+
+        # Correct password should return user
+        # Incorrect password should return False
+        self.assertEqual(authenticated_user.username, 'testuser')
+        self.assertEqual(unauthenticated_user, False)
+
+
+class UserMessageRelationshipTestCase(TestCase):
+    """Test relationship between User and Message models."""
+
+    def test_message_relationship(self):
+        """Does message relationship to user work?"""
+        u = User.signup(
+            email="test@test.com",
+            username="testuser",
+            password="testpassword",
+            image_url=None
+        )
+
+        u.id = 1
+
+        m = Message(
+            id=1,
+            text='Test message',
+            user_id=1
+        )
+
+        # ADD 2 ITEMS AT ONCE
+        db.session.add(m)
+        db.session.commit()
+
+        # Is message text the same as user-linked message text?
+        # Is user_id of message same as user's id?
+        self.assertEqual(u.messages[0].text, 'Test message')
+        self.assertEqual(u.id, m.user_id)
+
+
+class UserFollowersFolloweeRelationshipTestCase(TestCase):
+    """Test relationship between User and FollowersFollowee models."""
+
+    def test_follow_relationship(self):
+        """Does follow relationship to user work?
+        Create 3 users for chain of u1 followed by u2, u2 followed by u3"""
+
+        # HOW TO FIX AUTOINCREMENT ID's?
+        u1 = User.signup(
+            email="test1@test.com",
+            username="testuser1",
+            password="testpassword",
+            image_url=None
+        )
+
+        u2 = User.signup(
+            email="test2@test.com",
+            username="testuser2",
+            password="testpassword",
+            image_url=None
+        )
+
+        u3 = User.signup(
+            email="test3@test.com",
+            username="testuser3",
+            password="testpassword",
+            image_url=None
+        )
+
+        u1.id = 1
+        u2.id = 2
+        u3.id = 3
+
+        f1 = FollowersFollowee(
+            followee_id=1,
+            follower_id=2
+        )
+
+        f2 = FollowersFollowee(
+            followee_id=2,
+            follower_id=3
+        )
+
+        db.session.add_all([f1, f2])
+        db.session.commit()
+
+        # USERS GO THROUGH FOLLOWS TABLE AND BACK TO USER TABLE
+        # FOLLOWING = u1 is FOLLOWED by u2
+        # FOLLOWERS = u3 is FOLLOWING u2
+        self.assertEqual(u1.following[0].id, u2.id)
+        self.assertEqual(u3.followers[0].id, u2.id)
+
+        # Test is_followed_by, is_following methods
+        self.assertEqual(u1.is_followed_by(u2), True)
+        self.assertEqual(u2.is_followed_by(u1), False)
+        self.assertEqual(u3.is_following(u2), True)
+        self.assertEqual(u2.is_following(u3), False)

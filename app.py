@@ -189,7 +189,7 @@ def users_likes(user_id):
 
     # Removed likes/likes_id from g; refactored to pull just message_id from likes table
     likes_id = db.session.query(Like.message_id).filter(
-        Like.user_id == g.user.id).all()
+        Like.user_id == user_id).all()
     user = User.query.get_or_404(user_id)
     messages = Message.query.filter(Message.id.in_(likes_id)).all()
     return render_template('users/likes.html', user=user, messages=messages)
@@ -346,6 +346,7 @@ def homepage():
 
         # Refactor to pull message_id as tuples in likes table and pass into Jinja
         # Use list comprehension to unpack tuples before passing to Jinja - more efficient
+        # COULD use secondary relationship between users and messages through likes -- about the same?
         likes_tuple = db.session.query(Like.message_id).filter(
             Like.user_id == g.user.id).all()
         likes_id = [like[0] for like in likes_tuple]
