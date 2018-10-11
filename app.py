@@ -37,8 +37,8 @@ def add_user_to_g():
 
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
-        g.likes = Like.query.filter(Like.user_id == g.user.id).all()
-        g.likes_id = [like.message_id for like in g.likes]
+        # g.likes = Like.query.filter(Like.user_id == g.user.id).all()
+        # g.likes_id = [like.message_id for like in g.likes]
 
     else:
         g.user = None
@@ -187,8 +187,11 @@ def users_likes(user_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
+    # Removed likes/likes_id from g; refactored to pull just message_id from likes table
+    likes_id = db.session.query(Like.message_id).filter(
+        Like.user_id == g.user.id).all()
     user = User.query.get_or_404(user_id)
-    messages = Message.query.filter(Message.id.in_(g.likes_id)).all()
+    messages = Message.query.filter(Message.id.in_(likes_id)).all()
     return render_template('users/likes.html', user=user, messages=messages)
 
 
@@ -341,10 +344,17 @@ def homepage():
                     .limit(100)
                     .all())
 
-        return render_template('home.html', messages=messages)
+        # Refactor to pull message_id as tuples in likes table and pass into Jinja
+        # Use list comprehension to unpack tuples before passing to Jinja - more efficient
+        likes_tuple = db.session.query(Like.message_id).filter(
+            Like.user_id == g.user.id).all()
+        likes_id = [like[0] for like in likes_tuple]
+        return render_template('home.html', messages=messages, likes_id=likes_id)
 
     else:
         return render_template('home-anon.html')
+
+# Refactored like and unlike routes to one app route
 
 
 @app.route('/like/<action>', methods=["POST"])
