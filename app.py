@@ -194,6 +194,64 @@ def users_likes(user_id):
     messages = Message.query.filter(Message.id.in_(likes_id)).all()
     return render_template('users/likes.html', user=user, messages=messages)
 
+#####################
+# CUSTOM DECORATORS #
+#####################
+
+
+# def time_fn(fn):
+#     def inner(*args, **kwargs):
+#         start = time-now
+#         fn(*args, **kwargs)
+#         end = time-now
+#         print("this took", end-start)
+#     return inner
+
+# # closure and "decorator function"
+
+
+# def require_login(fn):
+#     def inner(*args, **kwargs):
+#         if g.user is None:
+#             flash, redirect + return
+#         else:
+#             fn(*args, **kwargs)
+#     return inner
+
+
+# @app.route('/users/follow/<int:follow_id>', methods=['POST'])
+# # @require_login
+# def add_follow(follow_id):
+#     """Add a follow for the currently-logged-in user."""
+
+#     validate_logged_in_or_redirect_now()
+#     # if redirection:
+#     #     return redirect
+
+#     # if not g.user:
+#     #     flash("Access unauthorized.", "danger")
+#     #     return redirect("/")
+
+#     followee = User.query.get_or_404(follow_id)
+#     g.user.following.append(followee)
+#     db.session.commit()
+
+#     return redirect(f"/users/{g.user.id}/following")
+
+# WILL FUNCTION CALLED WITHIN REQUEST HAVE G.USER DEFINED?
+
+
+# def validate_logged_in():
+#     if not g.user:
+#         flash("Access unauthorized.", "danger")
+#         raise XXXXX
+#         # return redirect("/")
+
+
+#################
+# END DECORATOR #
+#################
+
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
 def add_follow(follow_id):
