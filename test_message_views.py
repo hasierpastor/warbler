@@ -140,31 +140,3 @@ class MessageViewTestCase(TestCase):
         msg_count = Message.query.count()
 
         self.assertEqual(msg_count, 0)
-
-    def test_delete_messages(self):
-        """Test that messages are deleted correctly"""
-
-        m = Message(
-            id=1,
-            text="Test Message",
-            timestamp=None,
-            user_id=self.testuser.id
-        )
-
-        db.session.add(m)
-        db.session.commit()
-
-        # Doesn't work when with condition comes after message add/commit
-        with self.client as c:
-            with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.testuser.id
-
-            resp = c.post(f'/messages/{m.id}/delete')
-
-        # Make sure it redirects
-        self.assertEqual(resp.status_code, 302)
-
-        # Query messages, if message is deleted correclty count should equal 0
-        msg_count = Message.query.count()
-
-        self.assertEqual(msg_count, 0)

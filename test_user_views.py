@@ -46,13 +46,6 @@ class UserSignupViewTestCase(TestCase):
 
         self.client = app.test_client()
 
-        # self.testuser = User.signup(username="testuser",
-        #                             email="test@test.com",
-        #                             password="testuser",
-        #                             image_url=None)
-
-        # db.session.commit()
-
     def test_signup_form_rendered(self):
         """Can use sign up a user? - once form is validated"""
 
@@ -99,7 +92,7 @@ class UserSignupViewTestCase(TestCase):
         self.assertEqual(signed_up_user[0].username, 'testuser')
 
 
-class UserLoginViewTestCase(TestCase):
+class UserLogViewTestCase(TestCase):
     """Test login views for users."""
 
     def setUp(self):
@@ -159,12 +152,119 @@ class UserLoginViewTestCase(TestCase):
         with self.client:
             self.client.post("/login", data={"username": "testuser",
                                              "password": "testpassword"}, follow_redirects=True)
-
-            # import pdb
-            # pdb.set_trace()
             resp = self.client.get("/logout", follow_redirects=True)
             # .GET WHEN KEY DOESN'T EXIST IN DICTIONARY
             self.assertEqual(session.get(CURR_USER_KEY), None)
 
         self.assertEqual(resp.status_code, 200)
         self.assertIn(b'Logged out!', resp.data)
+
+
+class UserShowViewTestCase(TestCase):
+    """Test show user views for users."""
+
+    def setUp(self):
+        """Create test client, add sample data."""
+
+        User.query.delete()
+        Message.query.delete()
+        FollowersFollowee.query.delete()
+        Like.query.delete()
+
+        self.client = app.test_client()
+
+        self.testuser = User.signup(username="testuser",
+                                    email="test@test.com",
+                                    password="testpassword",
+                                    image_url=None)
+
+        db.session.commit()
+
+# HOW TO TEST SEARCH/LIST?
+# Test whether usernames show up in html
+    def test_list_users(self):
+        """Test list of users show up in html, filtered list"""
+
+        u1 = User.signup(username="bob",
+                         email="bob@bob.com",
+                         password="testpassword",
+                         image_url=None)
+
+        u2 = User.signup(username="tesla",
+                         email="tesla@tesla.com",
+                         password="testpassword",
+                         image_url=None)
+
+        db.session.commit()
+
+        resp_all = self.client.get("/users")
+        resp_search = self.client.get("/users?q=tes")
+
+        # import pdb
+        # pdb.set_trace()
+
+        self.assertIn(b'bob', resp_all.data)
+        self.assertIn(b'tesla', resp_search.data)
+        self.assertIn(b'testuser', resp_search.data)
+
+    def test_users_show(self):
+        """Test user profile is shown"""
+
+        resp = self.client.get(f"/users/{self.testuser.id}")
+
+        self.assertIn(b'testuser', resp.data)
+        self.assertIn(b'0', resp.data)
+        self.assertIn(b'<ul class="list-group" id="messages">', resp.data)
+
+
+class UserFollowViewTestCase(TestCase):
+    """Test user follow views."""
+
+    def setUp(self):
+        """Create test client, add sample data."""
+
+        User.query.delete()
+        Message.query.delete()
+        FollowersFollowee.query.delete()
+        Like.query.delete()
+
+        self.client = app.test_client()
+
+        self.testuser1 = User.signup(username="testuser1",
+                                     email="test1@test.com",
+                                     password="testpassword",
+                                     image_url=None)
+
+        self.testuser2 = User.signup(username="testuser2",
+                                     email="test2@test.com",
+                                     password="testpassword",
+                                     image_url=None)
+
+        self.testuser3 = User.signup(username="testuser3",
+                                     email="test3@test.com",
+                                     password="testpassword",
+                                     image_url=None)
+
+        db.session.commit()
+
+        # testuser id not available/created until id session is committed
+        f1 = FollowersFollowee(followee_id=self.testuser1.id,
+                               follower_id=self.testuser2.id)
+
+        f2 = FollowersFollowee(followee_id=self.testuser2.id,
+                               follower_id=self.testuser3.id)
+
+        db.session.add_all([f1, f2])
+        db.session.commit()
+
+    def test_show_following(self):
+        """Test list of user followers are shown"""
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser3.id
+
+        resp = c.get(f"/users/{self.testuser3.id}/following")
+
+        self.assertIn(b'testuser2', resp.data)
+        self.assertIn(b'<div class="card user-card">', resp.data)
