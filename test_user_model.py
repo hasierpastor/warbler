@@ -160,7 +160,7 @@ class UserMessageRelationshipTestCase(TestCase):
         # Is user_id of message same as user's id?
         self.assertEqual(u.messages[0].text, 'Test message')
         self.assertEqual(u.id, m.user_id)
-
+        # WHEN CREATE FOREIGNKEY AND RELATIONSHIP IN MODEL, SQLALCHEMY KNOWS WHICH TABLE IS ONE AND WHICH IS MANY, DEFINING IF RETURNED ITEM IS LIST OF OBJECT
         # Testing relationship between messages and users - SHOULD IT BE IN MESSAGE TESTS??
 
         self.assertEqual(m.user.username, 'testuser')
