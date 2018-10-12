@@ -309,7 +309,7 @@ def profile():
                 flash('Username or password invalid! :(')
                 return redirect('/')
         else:
-            return render_template('users/edit.html', form=form)
+            return render_template('users/edit.html', form=form, user=user)
     else:
         raise Unauthorized()
 
