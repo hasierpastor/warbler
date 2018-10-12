@@ -80,7 +80,7 @@ def signup():
                 username=form.data['username'],
                 password=form.data['password'],
                 email=form.data['email'],
-                image_url=form.data['image_url'],
+                image_url=form.data['image_url'] or None,
             )
             db.session.commit()
 
@@ -300,7 +300,7 @@ def profile():
             if User.authenticate(username_original, password):
                 user.username = form.data['username']
                 user.email = form.data['email']
-                user.image_url = form.data['image_url']
+                user.image_url = form.data['image_url'] or "/static/images/default-pic.png"
                 user.header_image_url = form.data['header_image_url']
                 user.bio = form.data['bio']
                 db.session.commit()
