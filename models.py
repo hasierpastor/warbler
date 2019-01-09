@@ -14,7 +14,7 @@ class FollowersFollowee(db.Model):
 
     __tablename__ = 'follows'
 
-    # Has "follow" clicked on them
+   # Has "follow" clicked on them
     followee_id = db.Column(
         db.Integer,
         db.ForeignKey('users.id', ondelete="cascade"),
